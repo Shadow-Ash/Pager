@@ -11,6 +11,8 @@ export default function BountyFeed() {
     const [selectedBounty, setSelectedBounty] = useState<string | null>(null);
     const [proofText, setProofText] = useState("");
     const [imageUrl, setImageUrl] = useState("");
+    const [viewBounty, setViewBounty] = useState<string | null>(null);
+    const [submissions, setSubmissions] = useState<any[]>([]);
 
     const openSubmission = (id: string) => {
         if (!user) {
@@ -34,6 +36,31 @@ export default function BountyFeed() {
         setSelectedBounty(null);
         setProofText("");
         setImageUrl("");
+    };
+
+    const openSubmissions = async (bountyId: string) => {
+        if (!user) return;
+
+        // Only creator can view
+        const bounty = bounties.find(b => b._id === bountyId);
+        if (bounty.username !== user.username) {
+            alert("Only creator can view submissions");
+            return;
+        }
+
+        const res = await axios.get(`/api/submission/by-bounty/${bountyId}`);
+        setSubmissions(res.data.submissions);
+        setViewBounty(bountyId);
+    };
+
+    const approveSubmission = async (submissionId: string) => {
+        await axios.post("/api/submission/approve", {
+            submissionId,
+            bountyId: viewBounty,
+        });
+
+        alert("Submission approved!");
+        setViewBounty(null);
     };
 
     useEffect(() => {
@@ -86,6 +113,13 @@ export default function BountyFeed() {
                     >
                         Submit Proof
                     </button>
+
+                    <button
+                        className="mt-2 bg-gray-800 text-white px-3 py-1 rounded ml-2"
+                        onClick={() => openSubmissions(bounty._id)}
+                    >
+                        View Submissions
+                    </button>
                 </div>
             ))}
 
@@ -121,6 +155,51 @@ export default function BountyFeed() {
                             className="mt-2 text-gray-500 w-full"
                         >
                             Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {viewBounty && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg w-[500px] max-h-[80vh] overflow-y-auto">
+                        <h2 className="font-bold mb-4">Submissions</h2>
+
+                        {submissions.length === 0 && (
+                            <p>No submissions yet</p>
+                        )}
+
+                        {submissions.map((sub) => (
+                            <div key={sub._id} className="border p-3 mb-3 rounded">
+                                <p className="font-semibold">@{sub.username}</p>
+                                <p className="text-sm mb-2">{sub.description}</p>
+
+                                <img
+                                    src={sub.mediaUrl}
+                                    alt="proof"
+                                    className="w-full h-40 object-cover rounded mb-2"
+                                />
+
+                                {sub.status === "pending" && (
+                                    <button
+                                        onClick={() => approveSubmission(sub._id)}
+                                        className="bg-green-600 text-white px-3 py-1 rounded"
+                                    >
+                                        Approve
+                                    </button>
+                                )}
+
+                                {sub.status === "approved" && (
+                                    <p className="text-green-600 font-semibold">Approved</p>
+                                )}
+                            </div>
+                        ))}
+
+                        <button
+                            onClick={() => setViewBounty(null)}
+                            className="mt-3 text-gray-500 w-full"
+                        >
+                            Close
                         </button>
                     </div>
                 </div>
