@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
-        const { walletAddress, description, reward, lat, lng, address, mediaUrl } =
+        const { walletAddress, description, reward, lat, lng, address, mediaUrl, onChainId } =
             await req.json();
 
         if (!walletAddress || !description || !reward) {
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
             reward,
             location: { lat, lng, address },
             mediaUrl,
+            onChainId,
         });
 
         return NextResponse.json({ success: true, bounty });

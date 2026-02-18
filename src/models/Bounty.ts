@@ -38,6 +38,10 @@ const BountySchema = new Schema(
             type: String,
             default: "open", // open | completed
         },
+        onChainId: {
+            type: Number,
+            default: null,
+        },
     },
     { timestamps: true }
 );

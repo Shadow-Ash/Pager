@@ -27,7 +27,6 @@ contract PagerEscrow {
         platform = _platform;
     }
 
-    // Create bounty and lock funds
     function createBounty(uint256 amount) external {
         require(amount > 0, "Amount must be > 0");
 
@@ -42,11 +41,10 @@ contract PagerEscrow {
         });
     }
 
-    // Release funds to hunter
     function approveBounty(uint256 bountyId, address hunter) external {
         Bounty storage bounty = bounties[bountyId];
 
-        require(bounty.active, "Bounty not active");
+        require(bounty.active, "Inactive");
         require(bounty.creator == msg.sender, "Not creator");
 
         bounty.active = false;
