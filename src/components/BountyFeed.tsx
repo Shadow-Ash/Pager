@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
+import { ethers } from "ethers";
+import { ESCROW_ADDRESS, ESCROW_ABI } from "@/lib/contracts";
 
 export default function BountyFeed() {
     const [bounties, setBounties] = useState<any[]>([]);
@@ -53,14 +55,51 @@ export default function BountyFeed() {
         setViewBounty(bountyId);
     };
 
-    const approveSubmission = async (submissionId: string) => {
-        await axios.post("/api/submission/approve", {
-            submissionId,
-            bountyId: viewBounty,
-        });
+    const approveSubmission = async (submission: any) => {
+        try {
+            if (!(window as any).ethereum) {
+                alert("MetaMask not found");
+                return;
+            }
 
-        alert("Submission approved!");
-        setViewBounty(null);
+            const provider = new ethers.BrowserProvider((window as any).ethereum);
+            const signer = await provider.getSigner();
+
+            const escrow = new ethers.Contract(
+                ESCROW_ADDRESS,
+                ESCROW_ABI,
+                signer
+            );
+
+            // Find bounty to get onChainId
+            const bounty = bounties.find(b => b._id === viewBounty);
+
+            if (!bounty?.onChainId) {
+                alert("On-chain ID missing");
+                return;
+            }
+
+            // Step 1 — Release funds
+            const tx = await escrow.approveBounty(
+                bounty.onChainId,
+                submission.hunterWallet
+            );
+
+            await tx.wait();
+
+            // Step 2 — Update DB
+            await axios.post("/api/submission/approve", {
+                submissionId: submission._id,
+                bountyId: viewBounty,
+            });
+
+            alert("Funds released successfully!");
+            setViewBounty(null);
+
+        } catch (err) {
+            console.error(err);
+            alert("Approval failed");
+        }
     };
 
     useEffect(() => {
@@ -182,7 +221,7 @@ export default function BountyFeed() {
 
                                 {sub.status === "pending" && (
                                     <button
-                                        onClick={() => approveSubmission(sub._id)}
+                                        onClick={() => approveSubmission(sub)}
                                         className="bg-green-600 text-white px-3 py-1 rounded"
                                     >
                                         Approve

@@ -33,6 +33,11 @@ const SubmissionSchema = new Schema(
             type: String,
             default: "pending", // pending | approved | rejected
         },
+
+        hunterWallet: {
+            type: String,
+            required: true,
+        },
     },
     { timestamps: true }
 );

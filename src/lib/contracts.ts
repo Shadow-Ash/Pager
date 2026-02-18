@@ -4,7 +4,8 @@ export const USDC_ADDRESS = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
 
 export const ESCROW_ABI = [
     "function createBounty(uint256 amount) external",
-    "function bountyCount() view returns (uint256)"
+    "function bountyCount() view returns (uint256)",
+    "function approveBounty(uint256 bountyId, address hunter) external"
 ];
 
 export const ERC20_ABI = [

@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
             username: user.username,
             description,
             mediaUrl,
+            hunterWallet: walletAddress,
         });
 
         return NextResponse.json({ success: true, submission });
