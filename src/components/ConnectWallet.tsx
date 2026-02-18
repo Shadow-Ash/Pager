@@ -6,65 +6,103 @@ import axios from "axios";
 import { useUser } from "@/context/UserContext";
 
 export default function ConnectWallet() {
-    const [wallet, setWallet] = useState("");
+    const { user, setUser } = useUser();
+
     const [username, setUsername] = useState("");
     const [needsUsername, setNeedsUsername] = useState(false);
-    const { setUser } = useUser();
-    const { user } = useUser();
+    const [loading, setLoading] = useState(false);
 
     const connectWallet = async () => {
+        try {
+            setLoading(true);
 
-        if (!(window as any).ethereum) {
-            alert("Install MetaMask");
-            return;
-        }
+            if (!(window as any).ethereum) {
+                alert("Install MetaMask");
+                return;
+            }
 
-        const provider = new ethers.BrowserProvider((window as any).ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        const address = accounts[0];
+            const provider = new ethers.BrowserProvider((window as any).ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            const address = accounts[0];
 
-        setWallet(address);
+            const res = await axios.post("/api/user/connect", {
+                walletAddress: address,
+            });
 
-        const res = await axios.post("/api/user/connect", {
-            walletAddress: address,
-        });
+            const userData = res.data.user;
 
-        const userData = res.data.user;
+            setUser(userData);
 
-        setUser(userData);
+            if (!userData.username) {
+                setNeedsUsername(true);
+            }
 
-        if (!userData.username) {
-            setNeedsUsername(true);
-        } else {
-            alert("Welcome " + userData.username);
+        } catch (err) {
+            console.error(err);
+            alert("Wallet connection failed");
+        } finally {
+            setLoading(false);
         }
     };
 
     const saveUsername = async () => {
-        const res = await axios.post("/api/user/set-username", {
-            walletAddress: wallet,
-            username,
-        });
+        if (!user) return;
 
-        setUser(res.data.user);
+        try {
+            const res = await axios.post("/api/user/set-username", {
+                walletAddress: user.walletAddress,
+                username,
+            });
 
-        alert("Username set!");
+            setUser(res.data.user);
+            setNeedsUsername(false);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save username");
+        }
+    };
+
+    // -------- LOGOUT --------
+    const logout = () => {
+        localStorage.removeItem("pagerUser");
+        setUser(null);
         setNeedsUsername(false);
     };
 
     return (
         <div className="p-4">
+
+            {/* Connect Button */}
             {!user && (
                 <button
                     onClick={connectWallet}
+                    disabled={loading}
                     className="bg-black text-white px-4 py-2 rounded"
                 >
-                    Connect Wallet
+                    {loading ? "Connecting..." : "Connect Wallet"}
                 </button>
             )}
 
-            {user && <p className="mb-4">Logged in as: {user.username || user.walletAddress}</p>}
+            {/* Logged In State */}
+            {user && (
+                <div className="flex items-center justify-between mb-4">
+                    <p>
+                        Logged in as:{" "}
+                        <span className="font-semibold">
+                            {user.username || user.walletAddress.slice(0, 6) + "..."}
+                        </span>
+                    </p>
 
+                    <button
+                        onClick={logout}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-sm"
+                    >
+                        Logout
+                    </button>
+                </div>
+            )}
+
+            {/* Username Setup */}
             {needsUsername && (
                 <div className="mt-4">
                     <input
