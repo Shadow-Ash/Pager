@@ -72,16 +72,19 @@ export default function SubmissionCard({ submission, bounty, onApproved }: Props
         <>
             <div
                 className="
-                ml-10 mt-3 relative
-                before:absolute before:left-[-14px] before:top-4
-                before:w-2 before:h-2 before:rounded-full
-                before:bg-primary/40
-                bg-primary/5 dark:bg-primary/10
-                border border-primary/20
-                rounded-xl
-                shadow-md
-            "
-            >
+mt-3 ml-10 left-32 relative
+before:absolute before:left-[-14px] before:top-4
+before:w-2 before:h-2 before:rounded-full
+before:bg-primary/40
+
+bg-primary/5
+dark:bg-[linear-gradient(135deg,rgba(134,107,255,0.18),rgba(255,120,180,0.10))]
+
+border border-primary/20
+dark:border-primary/30
+rounded-lg
+shadow-md
+"           >
                 {/* Header */}
                 <div className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">

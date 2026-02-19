@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-backgroundLight dark:bg-backgroundDark transition-colors duration-300">
 
-      <div className="max-w-xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* Header */}
 
