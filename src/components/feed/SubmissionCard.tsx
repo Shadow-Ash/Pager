@@ -6,6 +6,7 @@ import { useUser } from "@/context/UserContext";
 import axios from "axios";
 import { ethers } from "ethers";
 import { ESCROW_ADDRESS, ESCROW_ABI } from "@/lib/contracts";
+import { formatTimeAgo } from "@/lib/utils";
 
 type Props = {
     submission: any;
@@ -82,7 +83,7 @@ dark:bg-[linear-gradient(135deg,rgba(134,107,255,0.18),rgba(255,120,180,0.10))]
 
 border border-primary/20
 dark:border-primary/30
-rounded-lg
+rounded-2xl
 shadow-md
 "           >
                 {/* Header */}
@@ -100,6 +101,7 @@ shadow-md
 
                             <p className="text-[10px] text-textMutedDark">
                                 {new Date(submission.createdAt).toLocaleString()}
+                                {/* {formatTimeAgo(submission.createdAt)} */}
                             </p>
                         </div>
                     </div>

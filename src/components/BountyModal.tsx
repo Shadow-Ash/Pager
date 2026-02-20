@@ -7,6 +7,7 @@ import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import { ethers } from "ethers";
 import { ESCROW_ADDRESS, USDC_ADDRESS, ESCROW_ABI, ERC20_ABI } from "@/lib/contracts";
+import { IoImageSharp } from "react-icons/io5";
 
 type Props = {
     open: boolean;
@@ -192,7 +193,7 @@ export default function BountyModal({ open, onClose }: Props) {
                         placeholder="What’s happening at this location?"
                         rows={3}
                         className="
-              w-full p-3 rounded-xl
+              w-full p-3 rounded-lg
               bg-white dark:bg-neutralDark
               border border-borderLight dark:border-borderDark
               outline-none
@@ -208,7 +209,7 @@ export default function BountyModal({ open, onClose }: Props) {
                         value={reward}
                         onChange={(e) => setReward(e.target.value)}
                         className="
-              w-full p-3 rounded-xl
+              w-full p-3 rounded-lg
               bg-white dark:bg-neutralDark
               border border-borderLight dark:border-borderDark
               outline-none
@@ -236,6 +237,7 @@ export default function BountyModal({ open, onClose }: Props) {
 
                     <div>
                         <p className="text-sm font-medium text-primary mb-2 flex items-center gap-2">
+                            <IoImageSharp size={16} />
                             Choose Image (optional)
                         </p>
 

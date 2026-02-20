@@ -2,6 +2,7 @@
 
 "use client";
 
+import { formatTimeAgo } from "@/lib/utils";
 import MediaViewer from "./MediaViewer";
 import { useUser } from "@/context/UserContext";
 
@@ -57,7 +58,8 @@ export default function BountyCard({ bounty, onAccept }: Props) {
                 </div>
 
                 <span className="text-xs text-textMutedDark">
-                    {new Date(bounty.createdAt).toLocaleString()}
+                    {/* {new Date(bounty.createdAt).toLocaleString()} */}
+                    {formatTimeAgo(bounty.createdAt)}
                 </span>
             </div>
 

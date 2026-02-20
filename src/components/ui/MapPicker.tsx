@@ -47,7 +47,7 @@ export default function MapPicker({ onLocationSelect }: Props) {
     }, [onLocationSelect]);
 
     return (
-        <div className="w-full h-56 rounded-xl overflow-hidden border border-primary/20 shadow-inner">
+        <div className="w-full h-56 rounded-lg overflow-hidden border border-primary/20 shadow-inner">
             <div ref={mapContainer} className="w-full h-full" />
         </div>
     );

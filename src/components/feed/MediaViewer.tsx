@@ -4,6 +4,8 @@
 
 import { useState } from "react";
 import MapPreview from "./MapPreview";
+import { GrMapLocation } from "react-icons/gr";
+import { IoImageSharp } from "react-icons/io5";
 
 type Props = {
     mediaUrl?: string;
@@ -15,7 +17,7 @@ export default function MediaViewer({ mediaUrl, lat, lng }: Props) {
     const [showMap, setShowMap] = useState(!mediaUrl);
 
     return (
-        <div className="relative rounded-xl overflow-hidden aspect-video border border-primary/10 group">
+        <div className="relative rounded-md overflow-hidden aspect-video border border-primary/10 group">
 
             {/* Content */}
             {showMap ? (
@@ -31,15 +33,15 @@ export default function MediaViewer({ mediaUrl, lat, lng }: Props) {
             <button
                 onClick={() => setShowMap(!showMap)}
                 className="
-        absolute bottom-3 right-3
+        absolute top-3 right-3
         bg-black/50 backdrop-blur-md
         text-white px-3 py-1 rounded-lg
         text-xs flex items-center gap-1
         hover:bg-black/70 transition
         "
             >
-                <span className="material-symbols-outlined text-sm">
-                    {showMap ? "image" : "location_on"}
+                <span className="text-sm">
+                    {showMap ? <IoImageSharp /> : <GrMapLocation />}
                 </span>
                 {showMap ? "Image" : "Map"}
             </button>

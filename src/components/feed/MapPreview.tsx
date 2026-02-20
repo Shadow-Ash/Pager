@@ -37,7 +37,7 @@ export default function MapPreview({ lat, lng }: Props) {
     }, [lat, lng]);
 
     return (
-        <div className="w-full h-full rounded-lg overflow-hidden">
+        <div className="w-full h-full rounded-md overflow-hidden">
             <div ref={mapRef} className="w-full h-full" />
         </div>
     );

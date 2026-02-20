@@ -7,6 +7,7 @@ import BountyFeed from "@/components/BountyFeed";
 import Link from "next/link";
 import BountyModal from "@/components/BountyModal";
 import FloatingActionButton from "@/components/FloatingActionButton";
+import { FiMapPin } from "react-icons/fi";
 
 export default function Home() {
   const [open, setOpen] = useState(false);

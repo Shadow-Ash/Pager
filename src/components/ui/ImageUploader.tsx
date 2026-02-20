@@ -4,6 +4,7 @@
 
 import { useRef, useState } from "react";
 import axios from "axios";
+import { IoImageSharp } from "react-icons/io5";
 
 type Props = {
     onUpload: (url: string) => void;
@@ -53,7 +54,7 @@ export default function ImageUploader({ onUpload }: Props) {
             className="
       w-full h-40
       border-2 border-dashed border-primary/30
-      rounded-xl
+      rounded-lg
       flex items-center justify-center
       cursor-pointer
       bg-white/50 dark:bg-neutralDark
@@ -79,6 +80,7 @@ export default function ImageUploader({ onUpload }: Props) {
                 <p className="text-primary font-medium">Uploading...</p>
             ) : (
                 <div className="text-center text-primary/70">
+                    {/* <IoImageSharp size={42} className="align-middle mx-auto" /> */}
                     <p className="text-sm">Drag or click to upload image</p>
                 </div>
             )}
