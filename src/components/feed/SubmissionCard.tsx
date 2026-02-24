@@ -133,7 +133,7 @@ shadow-md
                 </div>
 
                 {/* Actions */}
-                <div className="px-3 py-2 border-t border-primary/10 flex items-center justify-end">
+                <div className="px-3 py-2 border-t border-primary/10 flex items-center justify-between">
                     <div className="flex items-center gap-5 text-textMutedDark">
                         <button className="flex items-center gap-1 hover:text-red-400 active:scale-90 transition">
                             <span className="text-[20px]">
