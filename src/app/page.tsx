@@ -1,26 +1,51 @@
-import ConnectWallet from "@/components/ConnectWallet";
-import CreateBounty from "@/components/CreateBounty";
+"use client";
+
+import { useState, useEffect } from "react";
 import BountyFeed from "@/components/BountyFeed";
-import Link from "next/link";
+import BountyModal from "@/components/BountyModal";
+import FloatingActionButton from "@/components/FloatingActionButton";
 
 export default function Home() {
+  const [open, setOpen] = useState(false);
+  const [bgImage, setBgImage] = useState("/light-mode.png");
+
+  // Detect theme and switch wallpaper
+  useEffect(() => {
+    const updateTheme = () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      setBgImage(isDark ? "/dark-mode.png" : "/light-mode.png");
+    };
+
+    updateTheme();
+
+    // Observe theme changes
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-xl mx-auto">
+    <main
+      className="relative min-h-screen"
+      style={{
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* Overlay for readability */}
+      <div className="absolute inset-0 bg-white/60 dark:bg-backgroundDark/80" />
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Pager</h1>
-          <Link
-            href="/map"
-            className="bg-black text-white px-4 py-2 rounded-lg"
-          >
-            Map View
-          </Link>
-        </div>
+      {/* Content */}
+      <div className="relative max-w-2xl mx-auto px-4 py-6">
+        <FloatingActionButton onClick={() => setOpen(true)} />
+        <BountyModal open={open} onClose={() => setOpen(false)} />
 
-        <ConnectWallet />
-        <CreateBounty />
         <BountyFeed />
       </div>
     </main>
