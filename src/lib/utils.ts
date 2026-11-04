@@ -1,20 +1,18 @@
-// Add this function to your existing utils file
-export function formatTimeAgo(dateString: string): string {
-    const date = new Date(dateString);
-    const diffMs = Date.now() - date.getTime();
+export function formatTimeAgo(dateString: string | Date): string {
+  const timestamp = new Date(dateString).getTime();
+  if (!Number.isFinite(timestamp)) return "Unknown time";
 
-    const sec = Math.floor(diffMs / 1000);
-    const min = Math.floor(sec / 60);
-    const hr = Math.floor(min / 60);
-    const day = Math.floor(hr / 24);
-    const week = Math.floor(day / 7);
-    const month = Math.floor(day / 30);
-    const year = Math.floor(month / 12);
-
-    if (sec < 60) return `${Math.max(1, min)}m`;
-    if (min < 60) return `${Math.max(1, min)}m`;
-    if (hr < 24) return `${Math.max(1, hr)}h`;
-    if (day < 7) return `${Math.max(1, day)}d`;
-    if (month < 12) return `${Math.max(1, month)}mo`;
-    return `${Math.max(1, year)}y`;
+  const diffSeconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (diffSeconds < 60) return diffSeconds < 0 ? "now" : "1m";
+  const minutes = Math.floor(diffSeconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${Math.max(1, months)}mo`;
+  return `${Math.floor(months / 12)}y`;
 }

@@ -4,270 +4,215 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
-
 import CreateUsernameModal from "@/components/modals/CreateUsernameModal";
 import NotificationModal from "@/components/modals/NotificationModal";
 
 type ConnectWalletProps = {
-    showLoginText?: boolean;
-    showUserName?: boolean;
-    showLogoutButton?: boolean;
-    showAvatarDropdown?: boolean;
+  showLoginText?: boolean;
+  showUserName?: boolean;
+  showLogoutButton?: boolean;
+  showAvatarDropdown?: boolean;
 };
 
 export default function ConnectWallet({
-    showLoginText = true,
-    showUserName = true,
-    showLogoutButton = true,
-    showAvatarDropdown = false,
+  showLoginText = true,
+  showUserName = true,
+  showLogoutButton = true,
+  showAvatarDropdown = false,
 }: ConnectWalletProps) {
-    const { user, setUser } = useUser();
+  const { user, setUser } = useUser();
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-    const [username, setUsername] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
 
-    // Modal controls
-    const [showUsernameModal, setShowUsernameModal] = useState(false);
-    const [showNotifications, setShowNotifications] = useState(false);
-
-    // Theme init
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        setIsDark(document.documentElement.classList.contains("dark"));
-    }, []);
-
-    // Lock body scroll when any modal open
-    useEffect(() => {
-        if (showUsernameModal || showNotifications) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "auto";
-        }
-    }, [showUsernameModal, showNotifications]);
-
-    // ---------------------------
-    // Wallet Connection
-    // ---------------------------
-    const connectWallet = async () => {
-        try {
-            setLoading(true);
-
-            if (!(window as any).ethereum) {
-                alert("Install MetaMask");
-                return;
-            }
-
-            const provider = new ethers.BrowserProvider(
-                (window as any).ethereum
-            );
-
-            const accounts = await provider.send("eth_requestAccounts", []);
-            const address = accounts[0];
-
-            const res = await axios.post("/api/user/connect", {
-                walletAddress: address,
-            });
-
-            const userData = res.data.user;
-            setUser(userData);
-
-            // Open username modal if not set
-            if (!userData.username) {
-                setShowUsernameModal(true);
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Wallet connection failed");
-        } finally {
-            setLoading(false);
-        }
+  useEffect(() => {
+    if (showUsernameModal || showNotifications) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
     };
+  }, [showUsernameModal, showNotifications]);
 
-    // ---------------------------
-    // Username Save
-    // ---------------------------
-    const saveUsername = async () => {
-        if (!user || !username.trim()) return;
-
-        try {
-            const res = await axios.post("/api/user/set-username", {
-                walletAddress: user.walletAddress,
-                username,
-            });
-
-            setUser(res.data.user);
-            setShowUsernameModal(false);
-            setUsername("");
-        } catch (err) {
-            console.error(err);
-            alert("Failed to save username");
-        }
-    };
-
-    // ---------------------------
-    // Logout
-    // ---------------------------
-    const logout = () => {
-        localStorage.removeItem("pagerUser");
+  // A wallet/account switch must never leave the previous account authenticated in the UI.
+  useEffect(() => {
+    const ethereum = (window as Window & { ethereum?: { on?: (event: string, cb: (accounts: string[]) => void) => void; removeListener?: (event: string, cb: (accounts: string[]) => void) => void } }).ethereum;
+    if (!ethereum?.on) return;
+    const handleAccountsChanged = (accounts: string[]) => {
+      const nextAddress = accounts?.[0];
+      if (!nextAddress || !user || nextAddress.toLowerCase() !== user.walletAddress.toLowerCase()) {
+        void axios.post("/api/user/logout").catch(() => undefined);
         setUser(null);
         setIsAvatarMenuOpen(false);
+      }
     };
+    ethereum.on("accountsChanged", handleAccountsChanged);
+    return () => ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
+  }, [user, setUser]);
 
-    // ---------------------------
-    // Theme Toggle
-    // ---------------------------
-    const toggleTheme = () => {
-        const html = document.documentElement;
+  const connectWallet = async () => {
+    try {
+      setLoading(true);
+      if (!(window as any).ethereum) {
+        alert("Install MetaMask or another injected EVM wallet");
+        return;
+      }
 
-        if (isDark) {
-            html.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-            setIsDark(false);
-        } else {
-            html.classList.add("dark");
-            localStorage.setItem("theme", "dark");
-            setIsDark(true);
-        }
-    };
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const address = accounts?.[0];
+      if (!address) throw new Error("No wallet account was returned");
 
-    const openNotifications = () => {
-        setShowNotifications(true);
-        setIsAvatarMenuOpen(false);
-    };
+      const nonceResponse = await axios.post("/api/user/nonce", { walletAddress: address });
+      const signer = await provider.getSigner(address);
+      const signature = await signer.signMessage(nonceResponse.data.message);
+      const verificationResponse = await axios.post("/api/user/verify", {
+        walletAddress: address,
+        signature,
+      });
 
-    // ---------------------------
-    // UI Helpers
-    // ---------------------------
-    const displayName =
-        user?.username ||
-        (user?.walletAddress
-            ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
-            : "");
+      const userData = verificationResponse.data.user;
+      setUser(userData);
+      if (!userData.username) setShowUsernameModal(true);
+    } catch (error) {
+      console.error("Wallet connection failed:", error);
+      alert("Wallet connection failed. Please approve the signature request and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const hasInlineContent =
-        showLoginText || showUserName || showLogoutButton;
+  const saveUsername = async () => {
+    if (!user || !username.trim()) return;
+    try {
+      setLoading(true);
+      const response = await axios.post("/api/user/set-username", { username });
+      setUser(response.data.user);
+      setShowUsernameModal(false);
+      setUsername("");
+    } catch (error) {
+      console.error("Username update failed:", error);
+      alert("Failed to save username. Choose another username and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // ===========================
-    // RENDER
-    // ===========================
-    return (
-        <>
-            {/* ----------------- Modals ----------------- */}
+  const logout = async () => {
+    try {
+      await axios.post("/api/user/logout");
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      localStorage.removeItem("pagerUser");
+      setUser(null);
+      setIsAvatarMenuOpen(false);
+    }
+  };
 
-            <CreateUsernameModal
-                open={showUsernameModal}
-                username={username}
-                setUsername={setUsername}
-                onSave={saveUsername}
-            />
+  const toggleTheme = () => {
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      html.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
 
-            <NotificationModal
-                open={showNotifications}
-                onClose={() => setShowNotifications(false)}
-            />
+  const displayName =
+    user?.username ||
+    (user?.walletAddress
+      ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
+      : "");
+  const hasInlineContent = showLoginText || showUserName || showLogoutButton;
 
-            {/* ----------------- Main ----------------- */}
-            <div className="p-4 flex mt-1">
-                {/* Connect Button */}
-                {!user && (
-                    <button
-                        onClick={connectWallet}
-                        disabled={loading}
-                        className="bg-black dark:bg-neutralDark text-white px-4 py-2 rounded-full text-sm font-semibold hover:scale-105 transition-all duration-200"
-                    >
-                        {loading ? "Connecting..." : "Connect Wallet"}
-                    </button>
-                )}
+  return (
+    <>
+      <CreateUsernameModal
+        open={showUsernameModal}
+        username={username}
+        setUsername={setUsername}
+        onSave={saveUsername}
+      />
+      <NotificationModal
+        open={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
 
-                {/* Logged user info */}
-                {user && hasInlineContent && (
-                    <div className="flex items-center justify-between mb-4 gap-3">
-                        <div className="flex items-center gap-1">
-                            {showLoginText && (
-                                <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    Logged in as:
-                                </span>
-                            )}
+      <div className="flex items-center gap-3 p-1">
+        {!user && (
+          <button
+            type="button"
+            onClick={connectWallet}
+            disabled={loading}
+            className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-neutralDark"
+          >
+            {loading ? "Connecting..." : "Connect Wallet"}
+          </button>
+        )}
 
-                            {showUserName && (
-                                <span className="text-md font-semibold mt-2 mr-3 text-textMainLight dark:text-textMainDark">
-                                    {displayName}
-                                </span>
-                            )}
-                        </div>
+        {user && hasInlineContent && (
+          <div className="flex items-center gap-2">
+            {showLoginText && <span className="hidden text-xs font-medium text-gray-500 sm:inline">Logged in as:</span>}
+            {showUserName && <span className="max-w-32 truncate text-sm font-semibold text-textMainLight dark:text-textMainDark">{displayName}</span>}
+            {showLogoutButton && (
+              <button type="button" onClick={logout} className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white transition hover:bg-red-600">
+                Logout
+              </button>
+            )}
+          </div>
+        )}
 
-                        {showLogoutButton && (
-                            <button
-                                onClick={logout}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm active:scale-95 transition-all duration-150"
-                            >
-                                Logout
-                            </button>
-                        )}
-                    </div>
-                )}
+        {user && showAvatarDropdown && (
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Open account menu"
+              aria-expanded={isAvatarMenuOpen}
+              onClick={() => setIsAvatarMenuOpen((previous) => !previous)}
+              className="size-10 overflow-hidden rounded-full border-2 border-primary/40 shadow-sm transition hover:scale-105"
+            >
+              <img
+                src={user.profilePic || `https://i.pravatar.cc/150?u=${encodeURIComponent(user.username || user.walletAddress)}`}
+                alt="Profile avatar"
+                className="size-full object-cover"
+              />
+            </button>
 
-                {/* Avatar Dropdown */}
-                {user && showAvatarDropdown && (
-                    <div className="relative inline-block">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setIsAvatarMenuOpen((prev) => !prev)
-                            }
-                            className="group"
-                        >
-                            <div className="size-10 rounded-full border-2 border-primary/40 shadow-sm group-hover:scale-105 transition-all duration-300" ><img
-                                src={`https://i.pravatar.cc/150?u=${user.username}`}
-                                className="w-96 rounded-full border-2 border-primary shadow-glow object-cover" /></div>
-                        </button>
-
-                        {isAvatarMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white dark:bg-cardDark border border-borderLight/60 dark:border-borderDark/70 shadow-2xl py-3 z-50">
-                                <div className="px-3 pb-3 border-b border-borderLight/60 dark:border-borderDark/70">
-                                    <p className="text-[10px] uppercase tracking-wide text-gray-400">
-                                        Logged in as
-                                    </p>
-                                    <p className="text-sm font-semibold text-textMainLight dark:text-textMainDark truncate">
-                                        {displayName}
-                                    </p>
-                                </div>
-
-                                <button
-                                    onClick={toggleTheme}
-                                    className="flex items-center justify-between w-full px-3 py-2 hover:bg-primary/10 dark:hover:bg-primary/20 text-sm font-semibold"
-                                >
-                                    <span>Theme</span>
-                                    <div className="relative inline-flex items-center h-5 w-10 rounded-full bg-gray-200 dark:bg-gray-700">
-                                        <span
-                                            className={`inline-block w-4 h-4 bg-white rounded-full transform transition-transform duration-300 ${isDark
-                                                ? "translate-x-5"
-                                                : "translate-x-1"
-                                                }`}
-                                        />
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={openNotifications}
-                                    className="w-full text-left px-3 py-2 hover:bg-primary/10 dark:hover:bg-primary/20 text-sm font-semibold"
-                                >
-                                    Notifications
-                                </button>
-
-                                <button
-                                    onClick={logout}
-                                    className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-semibold"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </>
-    );
+            {isAvatarMenuOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-52 rounded-2xl border border-borderLight/60 bg-white py-3 shadow-2xl dark:border-borderDark/70 dark:bg-cardDark">
+                <div className="border-b border-borderLight/60 px-3 pb-3 dark:border-borderDark/70">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400">Logged in as</p>
+                  <p className="truncate text-sm font-semibold text-textMainLight dark:text-textMainDark">{displayName}</p>
+                </div>
+                <button type="button" onClick={toggleTheme} className="flex w-full items-center justify-between px-3 py-2 text-sm font-semibold hover:bg-primary/10">
+                  <span>Theme</span>
+                  <span>{isDark ? "Dark" : "Light"}</span>
+                </button>
+                <button type="button" onClick={() => { setShowNotifications(true); setIsAvatarMenuOpen(false); }} className="w-full px-3 py-2 text-left text-sm font-semibold hover:bg-primary/10">
+                  Notifications
+                </button>
+                <button type="button" onClick={logout} className="w-full px-3 py-2 text-left text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
 }
